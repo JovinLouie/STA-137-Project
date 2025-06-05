@@ -1,0 +1,313 @@
+---
+title: "STA 137 Final Project"
+author: "Jenny Xu"
+date: "2025-06-05"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(astsa)
+library(MASS)
+library(forecast)
+load("finalproject.Rdata")
+```
+
+# Exploratory Data Analysis
+## Raw Data
+GDP: 
+- Time series is not stationary. 
+- ACF: There is no clear cutoff in ACF plot. ACF declines exponentially.
+- PACF: There is a spike at lag=1, suggesting potential AR(1) process.
+
+Imports: 
+- Time series is not stationary. 
+- ACF: There is no clear cutoff in ACF plot. ACF declines exponentially.
+- PACF: There is a spike at lag=1, suggesting potential AR(1) process.
+```{r}
+# Exploratory Data Analysis
+# Raw Data
+# 1. Time Series Plot
+ts.plot(finalPro_data$GDP)
+ts.plot(finalPro_data$Imports)
+# 2. ACF
+acf(finalPro_data$GDP)
+acf(finalPro_data$Imports)
+# 3. PACF
+pacf(finalPro_data$GDP)
+pacf(finalPro_data$Imports)
+```
+
+## Log-Transformed Data
+We use log transformation to stabilize the variance. Compared to box-cox transformation, log transformation is more suitable for economic context. However, compared to the raw data, all plots did not improve much.
+
+GDP: 
+- Time series is not stationary. 
+- ACF: There is no clear cutoff in ACF plot. ACF declines exponentially.
+- PACF: There is a spike at lag=1, suggesting potential AR(1) process.
+
+Imports: 
+- Time series is not stationary. 
+- ACF: There is no clear cutoff in ACF plot. ACF declines exponentially.
+- PACF: There is a spike at lag=1, suggesting potential AR(1) process.
+
+```{r}
+# Log-Transformed Data
+log.gdp.data = log(finalPro_data$GDP)
+log.import.data = log(finalPro_data$Imports)
+# 1. Time Series Plot
+ts.plot(log.gdp.data)
+ts.plot(log.import.data)
+# 2. ACF
+acf(log.gdp.data)
+acf(log.import.data)
+# 3. PACF
+pacf(log.gdp.data)
+pacf(log.import.data)
+```
+
+## Differencing Data
+We use differencing to stabilize the mean. Compared to the raw data, plots improved a lot.
+
+GDP: 
+- Time series is roughly stationary. 
+- ACF: There is no clear cutoff in ACF plot. The spike at lag = 0 is because ACF always equal to 1 for h = 0.
+- PACF: There is no clear cutoff in PACF plot.
+
+Imports: 
+- Time series is roughly stationary. 
+- ACF: There is no clear cutoff in ACF plot. The spike at lag = 0 is because ACF always equal to 1 for h = 0.
+- PACF: There is no clear cutoff in PACF plot.
+
+```{r}
+# Differencing Data
+diff.gdp.data = diff(finalPro_data$GDP)
+diff.import.data = diff(finalPro_data$Imports)
+# 1. Time Series Plot
+ts.plot(diff.gdp.data)
+ts.plot(diff.import.data)
+# 2. ACF
+acf(diff.gdp.data)
+acf(diff.import.data)
+# 3. PACF
+pacf(diff.gdp.data)
+pacf(diff.import.data)
+```
+
+## Box-cox Transformed Data 
+Still, we use transformation to stabilize the mean. However, compared to the raw data, all plots did not improve much.
+
+GDP: 
+- Time series is not stationary. 
+- ACF: There is no clear cutoff in ACF plot. ACF declines exponentially.
+- PACF: There is a spike at lag=1, suggesting potential AR(1) process.
+
+Imports: 
+- Time series is not stationary. 
+- ACF: There is no clear cutoff in ACF plot. ACF declines exponentially.
+- PACF: There is a spike at lag=1, suggesting potential AR(1) process.
+
+```{r}
+# Box-cox Transformed Data 
+gdp.lambda = BoxCox.lambda(finalPro_data$GDP)
+boxcox.gdp.data = BoxCox(finalPro_data$GDP, gdp.lambda)
+import.lambda = BoxCox.lambda(finalPro_data$Imports)
+boxcox.import.data = BoxCox(finalPro_data$Imports, import.lambda)
+# 1. Time Series Plot
+ts.plot(boxcox.gdp.data)
+ts.plot(boxcox.import.data)
+# 2. ACF
+acf(boxcox.gdp.data)
+acf(boxcox.import.data)
+# 3. PACF
+pacf(boxcox.gdp.data)
+pacf(boxcox.import.data)
+```
+
+## Box-cox Differencing Data
+We used boxcox transformation and differencing at the same time to stabilze both variance and the mean. All plots improved a lot. However, if log-differencing also work, it would be better to use log-differencing because diff(log(GDP)) indicates the growth rate in economics. Boxcox transformation is hard to interpret. 
+
+GDP: 
+- Time series looks stationary. 
+- ACF: There is no clear cutoff in ACF plot. The spike at lag = 0 is because ACF always equal to 1 for h = 0.
+- PACF: There is no clear cutoff in PACF plot.
+
+Imports: 
+- Time series looks stationary. 
+- ACF: There is no clear cutoff in ACF plot. The spike at lag = 0 is because ACF always equal to 1 for h = 0.
+- PACF: There is no clear cutoff in PACF plot.
+
+```{r}
+# Box-cox differencing Data 
+boxcox.diff.gdp.data = diff(boxcox.gdp.data)
+boxcox.diff.import.data = diff(boxcox.import.data)
+# 1. Time Series Plot
+ts.plot(boxcox.diff.gdp.data)
+ts.plot(boxcox.diff.import.data)
+# 2. ACF
+acf(boxcox.diff.gdp.data)
+acf(boxcox.diff.import.data)
+# 3. PACF
+pacf(boxcox.diff.gdp.data)
+pacf(boxcox.diff.import.data)
+```
+
+## Log-Differencing Data (Final)
+This is our final model, but we are going to let R do differencing in model selection and forecasting process. The reason is, if we let R do differencing, we will be able to see prediction for GDP in original scale (log(GDP)) in forecasting. If we manually do differencing, we can only see forecasting in growth rate. In practice, it is usually more common to ask the question, "what's predicted GDP for next year" instead of "what's the growth rate of next year."
+
+We used log transformation and differencing at the same time to stabilze both variance and the mean. All plots improved a lot.
+
+GDP: 
+- Time series looks stationary. 
+- ACF: There is no clear cutoff in ACF plot. The spike at lag = 0 is because ACF always equal to 1 for h = 0.
+- PACF: There is no clear cutoff in PACF plot.
+
+Imports: 
+- Time series looks stationary. 
+- ACF: There is no clear cutoff in ACF plot. The spike at lag = 0 is because ACF always equal to 1 for h = 0.
+- PACF: There is no clear cutoff in PACF plot.
+```{r}
+# Log-Differencing Data (Final)
+log.diff.gdp.data = diff(log.gdp.data)
+log.diff.import.data = diff(log.import.data)
+# 1. Time Series Plot
+ts.plot(log.diff.gdp.data)
+ts.plot(log.diff.import.data)
+# 2. ACF
+acf(log.diff.gdp.data)
+acf(log.diff.import.data)
+# 3. PACF
+pacf(log.diff.gdp.data)
+pacf(log.diff.import.data)
+```
+
+# Model Selection
+## GDP
+```{r}
+# Model Selection
+# GDP
+# Model 1: MA(1)
+log.gdp.ma1 = arima(log.gdp.data, order = c(0,1,1))
+log.gdp.ma1.diagnostics = sarima(log.gdp.data,0,1,1)
+log.gdp.ma1
+log.gdp.ma1.diagnostics
+# Model 2: AR(1)
+log.gdp.ar1 = arima(log.gdp.data, order = c(1,1,0))
+log.gdp.ar1.diagnostics = sarima(log.gdp.data,1,1,0)
+log.gdp.ar1
+log.gdp.ar1.diagnostics
+# Model 3: MA(2)
+log.gdp.ma2 = arima(log.gdp.data, order = c(0,1,2))
+log.gdp.ma2.diagnostics = sarima(log.gdp.data,0,1,2)
+log.gdp.ma2
+log.gdp.ma2.diagnostics
+# Model 4: AR(2)
+log.gdp.ar2 = arima(log.gdp.data, order = c(2,1,0))
+log.gdp.ar2.diagnostics = sarima(log.gdp.data,2,1,0)
+log.gdp.ar2
+log.gdp.ar2.diagnostics
+# Model 5: ARMA(1,1)
+log.gdp.arma11 = arima(log.gdp.data, order = c(1,1,1))
+log.gdp.arma11.diagnostics = sarima(log.gdp.data,1,1,1)
+log.gdp.arma11
+log.gdp.arma11.diagnostics
+# Model 6: ARMA(1,2)
+log.gdp.arma12 = arima(log.gdp.data, order = c(1,1,2))
+log.gdp.arma12.diagnostics = sarima(log.gdp.data,1,1,2)
+log.gdp.arma12
+log.gdp.arma12.diagnostics
+# Model 7: ARMA(2,1)
+log.gdp.arma21 = arima(log.gdp.data, order = c(2,1,1))
+log.gdp.arma21.diagnostics = sarima(log.gdp.data,2,1,1)
+log.gdp.arma21
+log.gdp.arma21.diagnostics
+# Model 8: ARMA(2,2) (final)
+log.gdp.arma22 = arima(log.gdp.data, order = c(2,1,2))
+log.gdp.arma22.diagnostics = sarima(log.gdp.data,2,1,2)
+log.gdp.arma22
+log.gdp.arma22.diagnostics
+```
+
+### GDP Final Model: ARMA(2,2)
+Our final model for GDP is ARMA(2,2).
+
+- Coefficients: All the coefficients are significant.
+- Residuals: Time series plot of residuals look like white noise. Stationary.
+- ACF of Residuals: ACF plot of residuals look like white noise. ACF = 0 for h > 0.
+- QQ plot: Residuals are normally distributed.
+- P-values for LB statistic: All significant, above blue threshold. 
+```{r}
+# GDP Final Model: ARMA(2,2)
+log.gdp.arma22 = arima(log.gdp.data, order = c(2,1,2))
+log.gdp.arma22.diagnostics = sarima(log.gdp.data,2,1,2)
+log.gdp.arma22
+log.gdp.arma22.diagnostics
+```
+
+## Imports
+```{r}
+# Model Selection
+# Imports
+# Model 1: MA(1)
+log.import.ma1 = arima(log.import.data, order = c(0,1,1))
+log.import.ma1.diagnostics = sarima(log.import.data,0,1,1)
+log.import.ma1
+log.import.ma1.diagnostics
+# Model 2: AR(1)
+log.import.ar1 = arima(log.import.data, order = c(1,1,0))
+log.import.ar1.diagnostics = sarima(log.import.data,1,1,0)
+log.import.ar1
+log.import.ar1.diagnostics
+# Model 3: MA(2)
+log.import.ma2 = arima(log.import.data, order = c(0,1,2))
+log.import.ma2.diagnostics = sarima(log.import.data,0,1,2)
+log.import.ma2
+log.import.ma2.diagnostics
+# Model 4: AR(2)
+log.import.ar2 = arima(log.import.data, order = c(2,1,0))
+log.import.ar2.diagnostics = sarima(log.import.data,2,1,0)
+log.import.ar2
+log.import.ar2.diagnostics
+# Model 5: ARMA(1,1) (final)
+log.import.arma11 = arima(log.import.data, order = c(1,1,1))
+log.import.arma11.diagnostics = sarima(log.import.data,1,1,1)
+log.import.arma11
+log.import.arma11.diagnostics
+# Model 6: ARMA(1,2)
+log.import.arma12 = arima(log.import.data, order = c(1,1,2))
+log.import.arma12.diagnostics = sarima(log.import.data,1,1,2)
+log.import.arma12
+log.import.arma12.diagnostics
+# Model 7: ARMA(2,1)
+log.import.arma21 = arima(log.import.data, order = c(2,1,1))
+log.import.arma21.diagnostics = sarima(log.import.data,2,1,1)
+log.import.arma21
+log.import.arma21.diagnostics
+# Model 8: ARMA(2,2)
+log.import.arma22 = arima(log.import.data, order = c(2,1,2))
+log.import.arma22.diagnostics = sarima(log.import.data,2,1,2)
+log.import.arma22
+log.import.arma22.diagnostics
+```
+
+### Imports Final Model: ARMA(1,1)
+Our final model for Imports is ARMA(1,1).
+
+- Coefficients: All the coefficients are significant.
+- Residuals: Time series plot of residuals look like white noise. Stationary.
+- ACF of Residuals: ACF plot of residuals look like white noise. ACF = 0 for h > 0.
+- QQ plot: Residuals are normally distributed.
+- P-values for LB statistic: Almost all significant, above blue threshold. 
+```{r}
+# Imports Final Model: ARMA(1,1)
+log.import.arma11 = arima(log.import.data, order = c(1,1,1))
+log.import.arma11.diagnostics = sarima(log.import.data,1,1,1)
+log.import.arma11
+log.import.arma11.diagnostics
+```
+
