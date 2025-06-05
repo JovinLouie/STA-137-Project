@@ -1,0 +1,63 @@
+---
+title: "Part2and3"
+author: "Keai"
+date: "2025-06-03"
+output: html_document
+---
+
+```{r}
+load("finalproject.Rdata")
+```
+
+```{r}
+#Section 2
+ts.plot(finalPro_data$GDP)
+ts.plot(finalPro_data$Imports)
+acf(finalPro_data$GDP)
+acf(finalPro_data$Imports)
+pacf(finalPro_data$GDP)
+pacf(finalPro_data$Imports)
+#taking log
+log.GDP=log(finalPro_data$GDP)
+log.Imports=log(finalPro_data$Imports)
+ts.plot(log.GDP)
+ts.plot(log.Imports)
+acf(log.GDP)
+acf(log.Imports)
+pacf(log.GDP)
+pacf(log.Imports)
+```
+
+```{r}
+#taking difference
+diff.GDP=diff(log.GDP)
+diff.Imports=diff(log.Imports)
+ts.plot(diff.GDP)
+ts.plot(diff.Imports)
+acf(diff.GDP)
+acf(diff.Imports)
+pacf(diff.GDP)
+pacf(diff.Imports)
+```
+
+```{r}
+#Try Box-Cox transformation
+library(MASS)
+model=lm(finalPro_data$GDP~finalPro_data$Year, data=finalPro_data)
+boxcox(model)
+bc=boxcox(model)
+lambda_opt=bc$x[which.max(bc$y)]
+bclambda=BoxCox.lambda(GDP, method=c("guerrero","loglik"), lower=-1, upper=2)
+GDP_bc=BoxCox(finalPro_data$GDP, bclambda)
+acf(GDP_bc)
+model_im=lm(finalPro_data$Imports~finalPro_data$Year, data=finalPro_data)
+bc_im=boxcox(model_im)
+lambda_opt_im=bc_im$x[which.max(bc_im$y)]
+Imports_bc=BoxCox(finalPro_data$Imports, lambda_opt_im)
+acf(Imports_bc)
+ts.plot(GDP_bc)
+ts.plot(Imports_bc)
+pacf(GDP_bc)
+pacf(Imports_bc)
+```
+

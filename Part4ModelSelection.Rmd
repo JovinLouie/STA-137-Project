@@ -1,0 +1,291 @@
+---
+title: "STA 137 - Part 4: Model Selection"
+author: "Jovin Louie"
+date: "2025-06-10"
+output: html_document
+---
+
+```{r, message=FALSE, warning=FALSE}
+library(astsa)
+library(lmtest)
+library(forecast)
+library(tseries)
+library(ggplot2)
+library(tidyverse)
+```
+
+
+```{r}
+load("finalProject.Rdata")
+```
+
+# GDP
+
+## No differecing
+```{r}
+gdp = ts(finalPro_data$GDP, start = 1960, frequency = 1)
+
+# Plot the raw GDP time series
+autoplot(gdp) +
+  ggtitle("Central African Republic GDP (1960–2017)") +
+  ylab("GDP") + xlab("Year")
+```
+
+
+```{r}
+# ACF and PACF
+acf(gdp, main = "ACF of Raw GDP")
+pacf(gdp, main = "PACF of Raw GDP")
+
+# Augmented Dickey-Fuller Test
+# adf.test(gdp)
+```
+
+```{r}
+log_gdp = log(gdp)
+
+autoplot(log_gdp) +
+  ggtitle("Log Transformed GDP") +
+  ylab("log(GDP)") + xlab("Year")
+
+# Check ACF/PACF after log transformation
+acf(log_gdp, main = "ACF of log(GDP)")
+pacf(log_gdp, main = "PACF of log(GDP)")
+```
+```{r}
+lambda = BoxCox.lambda(gdp)  # Automatically selects the best lambda
+
+boxcox_gdp = BoxCox(gdp, lambda)
+
+# Plot the transformed series
+autoplot(ts(boxcox_gdp, start = 1960, frequency = 1)) +
+  ggtitle(paste("Box-Cox Transformed GDP (λ =", round(lambda, 3), ")")) +
+  ylab("Transformed GDP") + xlab("Year")
+
+# Check ACF and PACF of Box-Cox transformed data
+acf(boxcox_gdp, main = "ACF of Box-Cox Transformed GDP")
+pacf(boxcox_gdp, main = "PACF of Box-Cox Transformed GDP")
+```
+
+## Differencing
+```{r}
+diff_gdp = diff(gdp)
+
+autoplot(diff_gdp) +
+  ggtitle("Differenced GDP") +
+  ylab("diff(GDP)") + xlab("Year")
+
+# Check ACF/PACF after log transformation
+acf(log_gdp, main = "ACF of diff(GDP)")
+pacf(log_gdp, main = "PACF of diff(GDP)")
+```
+```{r}
+diff_log_gdp = diff(log_gdp)
+
+autoplot(diff_log_gdp) +
+  ggtitle("Differenced Log(GDP)") +
+  ylab("Differenced log(GDP)") + xlab("Year")
+
+# ACF/PACF after differencing
+acf(diff_log_gdp, main = "ACF of Differenced log(GDP)")
+pacf(diff_log_gdp, main = "PACF of Differenced log(GDP)")
+
+# ADF Test after transformation
+# adf.test(diff_log_gdp)
+
+```
+
+```{r}
+lambda_gdp2 = BoxCox.lambda(diff_gdp)  # Automatically selects the best lambda
+
+boxcox_gdp2 = BoxCox(diff_log_gdp, lambda_gdp2)
+
+# Plot the transformed series
+autoplot(ts(boxcox_gdp2, start = 1960, frequency = 1)) +
+  ggtitle(paste("Box-Cox Transformed diff log GDP (λ =", round(lambda, 3), ")")) +
+  ylab("Transformed GDP") + xlab("Year")
+
+# Check ACF and PACF of Box-Cox transformed data
+acf(boxcox_gdp2, main = "ACF of Box-Cox Transformed diff log GDP")
+pacf(boxcox_gdp2, main = "PACF of Box-Cox Transformed diff log GDP")
+```
+
+## Making a model
+```{r}
+fit1 = Arima(diff_log_gdp, order = c(2,0,0), include.mean=TRUE)
+fit2 = Arima(diff_log_gdp, order = c(2,0,1))
+fit3 = Arima(diff_log_gdp, order = c(2,0,2))
+fit4 = Arima(diff_log_gdp, order = c(1,0,0))
+fit5 = Arima(diff_log_gdp, order = c(1,0,1))
+fit6 = Arima(diff_log_gdp, order = c(0,0,1))
+fit7 = Arima(diff_log_gdp, order = c(0,0,2))
+```
+
+```{r}
+fits = list(fit1, fit2, fit3, fit4, fit5, fit6, fit7)
+```
+
+
+```{r}
+for (i in seq_along(fits)) {
+  print(summary(fits[[i]]))
+}
+```
+
+
+```{r}
+for (i in seq_along(fits)) {
+  print(coeftest(fits[[i]]))
+}
+```
+
+```{r}
+for (i in seq_along(fits)) {
+  tsdiag(fits[[i]])
+}
+```
+
+```{r}
+AIC(fit1, fit2, fit3, fit4, fit5, fit6, fit7)
+BIC(fit1, fit2, fit3, fit4, fit5, fit6, fit7)
+
+# summary(fit1)
+# summary(fit2)
+# summary(fit3)
+
+for (i in seq_along(fits)) {
+  checkresiduals(fits[[i]])
+}
+```
+
+```{r}
+for (i in seq_along(fits)) {
+  qqnorm(residuals(fits[[i]]), main = paste("Normal Q-Q Plot of Std Residuals - fit", i))
+  qqline(residuals(fit5), col = "blue")
+}
+```
+
+```{r}
+for (i in seq_along(fits)) {
+  acf(residuals(fits[[i]]), main = paste("ACF of Residuals - fit", i))
+}
+
+for (i in seq_along(fits)) {
+  pacf(residuals(fits[[i]]), main = paste("PACF of Residuals - fit", i))
+}
+```
+
+## Final model = ARIMA(2,0,2)
+
+# Imports
+```{r}
+imports = ts(finalPro_data$Imports, start = 1960, frequency = 1)
+
+# Plot the raw GDP time series
+autoplot(imports) +
+  ggtitle("Central African Republic Imports (1960–2017)") +
+  ylab("Imports") + xlab("Year")
+```
+
+
+
+```{r}
+diff_imports = diff(imports)
+
+autoplot(diff_imports) +
+  ggtitle("Differenced Imports") +
+  ylab("diff(Imports)") + xlab("Year")
+
+# Check ACF/PACF after log transformation
+acf(log_gdp, main = "ACF of diff(Imports)")
+pacf(log_gdp, main = "PACF of diff(Imports)")
+```
+
+```{r}
+log_imports = log(imports)
+
+autoplot(log_imports) +
+  ggtitle("Log Imports") +
+  ylab("log(Imports)") + xlab("Year")
+
+# Check ACF/PACF after log transformation
+acf(log_imports, main = "ACF of log(Imports)")
+pacf(log_imports, main = "PACF of log(Imports)")
+```
+
+```{r}
+diff_log_imports = diff(log_imports)
+
+autoplot(diff_log_imports) +
+  ggtitle("Diff Log Imports") +
+  ylab("Differenced log(Imports)") + xlab("Year")
+
+# Check ACF/PACF after log transformation
+acf(diff_log_imports, main = "ACF of Diff log(Imports)")
+pacf(diff_log_imports, main = "PACF of Diff log(Imports)")
+```
+
+```{r}
+lambda_imports = BoxCox.lambda(imports)  # Automatically selects the best lambda
+
+boxcox_imports = BoxCox(imports, lambda_imports)
+
+# Plot the transformed series
+autoplot(ts(boxcox_imports, start = 1960, frequency = 1)) +
+  ggtitle(paste("Box-Cox Transformed Imports (λ =", round(lambda_imports, 3), ")")) +
+  ylab("Transformed Imports") + xlab("Year")
+
+# Check ACF and PACF of Box-Cox transformed data
+acf(boxcox_imports, main = "ACF of Box-Cox Transformed Imports")
+pacf(boxcox_imports, main = "PACF of Box-Cox Transformed Imports")
+```
+
+
+## Making a model
+```{r}
+imports_fit = auto.arima(imports, d=1, allowmean=TRUE, allowdrift=FALSE, trace=TRUE)
+
+# tsdiag(imports_fit)
+# checkresiduals(imports_fit)
+# coeftest(imports_fit)
+
+# library(forecast)
+# Arima(imports, order = c(0,1,2), include.mean=TRUE)
+# sarima(imports, 0, 1, 2)
+```
+
+```{r}
+test = sarima(diff_log_imports, 1, 0, 1)
+
+test2 = sarima(diff_log_imports, 1, 0, 2)
+```
+
+```{r}
+test2
+```
+
+
+```{r}
+fit_imports = Arima(diff_log_imports, order = c(1,0,1))
+fit_imports2 = Arima(diff_log_imports, order = c(1,0,2))
+summary(fit_imports)
+summary(fit_imports2)
+```
+
+```{r}
+coeftest(fit_imports)
+acf(residuals(fit_imports))
+pacf(residuals(fit_imports))
+
+coeftest(fit_imports2)
+acf(residuals(fit_imports2))
+pacf(residuals(fit_imports2))
+
+AIC(fit_imports, fit_imports2)
+BIC(fit_imports, fit_imports2)
+
+checkresiduals(fit_imports)
+checkresiduals(fit_imports2)
+```
+
+## Final model = ARIMA(1,0,1)
