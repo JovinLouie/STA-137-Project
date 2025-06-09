@@ -1,0 +1,40 @@
+---
+title: "Part 5"
+author: "Peter Xie"
+date: "2025-06-08"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(forecast)
+library(ggplot2)
+```
+
+```{r}
+gdp_forecast <- forecast(fit3, h = 5)
+autoplot(gdp_forecast) +
+  ggtitle("5-Year Forecast of GDP (ARIMA(2,0,2))") +
+  xlab("Year") +
+  ylab("Predicted diff(log(GDP))")
+```
+
+```{r}
+forecast_gdp <- forecast(fit3, h = 5)
+forecast_imports <- forecast(fit_imports, h = 5)
+```
+
+```{r}
+autoplot(forecast_imports) +
+  ggtitle("5-Year Forecast of Imports (ARIMA(1,0,1))") +
+  xlab("Year") + ylab("Predicted Imports")
+
+```
+
+```{r}
+summary(forecast_imports)
+
+```
