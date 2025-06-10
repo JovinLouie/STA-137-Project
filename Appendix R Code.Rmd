@@ -1,0 +1,287 @@
+---
+title: "Appendix R Code"
+author: "Jenny Xu"
+date: "2025-06-05"
+output:
+  pdf_document: default
+  html_document: default
+editor_options: 
+  markdown: 
+    wrap: sentence
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(astsa)
+library(MASS)
+library(forecast)
+library(ggplot2)
+load("finalproject.Rdata")
+```
+
+# Exploratory Data Analysis
+## Raw Data
+```{r}
+# Exploratory Data Analysis
+# Raw Data with Year-Based Time Series
+
+# Set up 2x3 plotting area
+par(mfrow = c(2,3))
+
+# 1. GDP
+gdp_ts <- ts(finalPro_data$GDP, start = 1960, frequency = 1)
+plot(gdp_ts, main = "GDP Over Time", ylab = "GDP", xlab = "Year")
+acf(gdp_ts, main = "ACF of GDP")
+pacf(gdp_ts, main = "PACF of GDP")
+
+# 2. Imports
+import_ts <- ts(finalPro_data$Imports, start = 1960, frequency = 1)
+plot(import_ts, main = "Imports Over Time", ylab = "Imports", xlab = "Year")
+acf(import_ts, main = "ACF of Imports")
+pacf(import_ts, main = "PACF of Imports")
+```
+
+## Log-Transformed Data
+```{r}
+# Log-Transformed Data
+log.gdp.ts <- ts(log(finalPro_data$GDP), start = 1960, frequency = 1)
+log.import.ts <- ts(log(finalPro_data$Imports), start = 1960, frequency = 1)
+
+# Set up 2x3 plotting area
+par(mfrow = c(2,3))
+
+# 1. GDP
+plot(log.gdp.ts, main = "Log-Transformed GDP Over Time", ylab = "Log(GDP)", xlab = "Year")
+acf(log.gdp.ts, main = "ACF of Log-Transformed GDP")
+pacf(log.gdp.ts, main = "PACF of Log-Transformed GDP")
+
+# 2. Imports
+plot(log.import.ts, main = "Log-Transformed Imports Over Time", ylab = "Log(Imports)", xlab = "Year")
+acf(log.import.ts, main = "ACF of Log-Transformed Imports")
+pacf(log.import.ts, main = "PACF of Log-Transformed Imports")
+```
+
+## Differencing Data
+```{r}
+# Differenced Data (first difference removes first observation, so start at 1961)
+diff.gdp.ts <- ts(diff(finalPro_data$GDP), start = 1961, frequency = 1)
+diff.import.ts <- ts(diff(finalPro_data$Imports), start = 1961, frequency = 1)
+
+# Set up 2x3 plotting area
+par(mfrow = c(2,3))
+
+# 1. GDP
+plot(diff.gdp.ts, main = "Differenced GDP Over Time", ylab = "Differenced GDP", xlab = "Year")
+acf(diff.gdp.ts, main = "ACF of Differenced GDP")
+pacf(diff.gdp.ts, main = "PACF of Differenced GDP")
+
+# 2. Imports
+plot(diff.import.ts, main = "Differenced Imports Over Time", ylab = "Differenced Imports", xlab = "Year")
+acf(diff.import.ts, main = "ACF of Differenced Imports")
+pacf(diff.import.ts, main = "PACF of Differenced Imports")
+```
+
+## Box-cox Transformed Data
+```{r}
+# Box-Cox Transformed Data
+gdp.lambda <- BoxCox.lambda(finalPro_data$GDP)
+boxcox.gdp.ts <- ts(BoxCox(finalPro_data$GDP, gdp.lambda), start = 1960, frequency = 1)
+
+import.lambda <- BoxCox.lambda(finalPro_data$Imports)
+boxcox.import.ts <- ts(BoxCox(finalPro_data$Imports, import.lambda), start = 1960, frequency = 1)
+
+# Set up 2x3 plotting area
+par(mfrow = c(2,3))
+
+# 1. GDP
+plot(boxcox.gdp.ts, main = "Box-Cox Transformed GDP Over Time", ylab = "BoxCox(GDP)", xlab = "Year")
+acf(boxcox.gdp.ts, main = "ACF of Box-Cox Transformed GDP")
+pacf(boxcox.gdp.ts, main = "PACF of Box-Cox Transformed GDP")
+
+# 2. Imports
+plot(boxcox.import.ts, main = "Box-Cox Transformed Imports Over Time", ylab = "BoxCox(Imports)", xlab = "Year")
+acf(boxcox.import.ts, main = "ACF of Box-Cox Transformed Imports")
+pacf(boxcox.import.ts, main = "PACF of Box-Cox Transformed Imports")
+```
+
+## Box-cox Differencing Data
+```{r}
+# Box-Cox Differenced Data (first difference removes first year, so start = 1961)
+boxcox.diff.gdp.ts <- ts(diff(boxcox.gdp.ts), start = 1961, frequency = 1)
+boxcox.diff.import.ts <- ts(diff(boxcox.import.ts), start = 1961, frequency = 1)
+
+# Set up 2x3 plotting area
+par(mfrow = c(2,3))
+
+# 1. GDP
+plot(boxcox.diff.gdp.ts, main = "Box-Cox Differenced GDP Over Time", ylab = "Box-Cox Differenced(GDP)", xlab = "Year")
+acf(boxcox.diff.gdp.ts, main = "ACF of Box-Cox Differenced GDP")
+pacf(boxcox.diff.gdp.ts, main = "PACF of Box-Cox Differenced GDP")
+
+# 2. Imports
+plot(boxcox.diff.import.ts, main = "Box-Cox Differenced Imports Over Time", ylab = "Box-Cox Differenced(Imports)", xlab = "Year")
+acf(boxcox.diff.import.ts, main = "ACF of Box-Cox Differenced Imports")
+pacf(boxcox.diff.import.ts, main = "PACF of Box-Cox Differenced Imports")
+```
+
+## Log-Differencing Data (Final)
+```{r}
+# Log-Differenced Data (Final)
+log.diff.gdp.ts <- ts(diff(log.gdp.ts), start = 1961, frequency = 1)
+log.diff.import.ts <- ts(diff(log.import.ts), start = 1961, frequency = 1)
+
+# Set up 2x3 plotting area
+par(mfrow = c(2,3))
+
+# 1. GDP
+plot(log.diff.gdp.ts, main = "Log-Differenced GDP Over Time", ylab = "Log-Differenced(GDP)", xlab = "Year")
+acf(log.diff.gdp.ts, main = "ACF of Log-Differenced GDP")
+pacf(log.diff.gdp.ts, main = "PACF of Log-Differenced GDP")
+
+# 2. Imports
+plot(log.diff.import.ts, main = "Log-Differenced Imports Over Time", ylab = "Log-Differenced(Imports)", xlab = "Year")
+acf(log.diff.import.ts, main = "ACF of Log-Differenced Imports")
+pacf(log.diff.import.ts, main = "PACF of Log-Differenced Imports")
+```
+
+# Model Selection
+## GDP
+```{r}
+# Model Selection on Log-Differenced GDP (stationary)
+# GDP
+
+# Model 1: MA(1)
+log.diff.gdp.ma1 <- arima(log.diff.gdp.ts, order = c(0,0,1))
+log.diff.gdp.ma1.diagnostics <- sarima(log.diff.gdp.ts, 0, 0, 1)
+log.diff.gdp.ma1
+log.diff.gdp.ma1.diagnostics
+
+# Model 2: AR(1)
+log.diff.gdp.ar1 <- arima(log.diff.gdp.ts, order = c(1,0,0))
+log.diff.gdp.ar1.diagnostics <- sarima(log.diff.gdp.ts, 1, 0, 0)
+log.diff.gdp.ar1
+log.diff.gdp.ar1.diagnostics
+
+# Model 3: MA(2)
+log.diff.gdp.ma2 <- arima(log.diff.gdp.ts, order = c(0,0,2))
+log.diff.gdp.ma2.diagnostics <- sarima(log.diff.gdp.ts, 0, 0, 2)
+log.diff.gdp.ma2
+log.diff.gdp.ma2.diagnostics
+
+# Model 4: AR(2)
+log.diff.gdp.ar2 <- arima(log.diff.gdp.ts, order = c(2,0,0))
+log.diff.gdp.ar2.diagnostics <- sarima(log.diff.gdp.ts, 2, 0, 0)
+log.diff.gdp.ar2
+log.diff.gdp.ar2.diagnostics
+
+# Model 5: ARMA(1,1)
+log.diff.gdp.arma11 <- arima(log.diff.gdp.ts, order = c(1,0,1))
+log.diff.gdp.arma11.diagnostics <- sarima(log.diff.gdp.ts, 1, 0, 1)
+log.diff.gdp.arma11
+log.diff.gdp.arma11.diagnostics
+
+# Model 6: ARMA(1,2)
+log.diff.gdp.arma12 <- arima(log.diff.gdp.ts, order = c(1,0,2))
+log.diff.gdp.arma12.diagnostics <- sarima(log.diff.gdp.ts, 1, 0, 2)
+log.diff.gdp.arma12
+log.diff.gdp.arma12.diagnostics
+
+# Model 7: ARMA(2,1)
+log.diff.gdp.arma21 <- arima(log.diff.gdp.ts, order = c(2,0,1))
+log.diff.gdp.arma21.diagnostics <- sarima(log.diff.gdp.ts, 2, 0, 1)
+log.diff.gdp.arma21
+log.diff.gdp.arma21.diagnostics
+
+# Model 8: ARMA(2,2) (final)
+log.diff.gdp.arma22 <- arima(log.diff.gdp.ts, order = c(2,0,2))
+log.diff.gdp.arma22.diagnostics <- sarima(log.diff.gdp.ts, 2, 0, 2)
+log.diff.gdp.arma22
+log.diff.gdp.arma22.diagnostics
+```
+
+## GDP Final Model: ARMA(2,2)
+
+## Imports
+
+```{r}
+# Model Selection on Log-Differenced Imports (stationary)
+# Imports
+
+# Model 1: MA(1)
+log.diff.import.ma1 <- arima(log.diff.import.ts, order = c(0,0,1))
+log.diff.import.ma1.diagnostics <- sarima(log.diff.import.ts, 0, 0, 1)
+log.diff.import.ma1
+log.diff.import.ma1.diagnostics
+
+# Model 2: AR(1)
+log.diff.import.ar1 <- arima(log.diff.import.ts, order = c(1,0,0))
+log.diff.import.ar1.diagnostics <- sarima(log.diff.import.ts, 1, 0, 0)
+log.diff.import.ar1
+log.diff.import.ar1.diagnostics
+
+# Model 3: MA(2)
+log.diff.import.ma2 <- arima(log.diff.import.ts, order = c(0,0,2))
+log.diff.import.ma2.diagnostics <- sarima(log.diff.import.ts, 0, 0, 2)
+log.diff.import.ma2
+log.diff.import.ma2.diagnostics
+
+# Model 4: AR(2)
+log.diff.import.ar2 <- arima(log.diff.import.ts, order = c(2,0,0))
+log.diff.import.ar2.diagnostics <- sarima(log.diff.import.ts, 2, 0, 0)
+log.diff.import.ar2
+log.diff.import.ar2.diagnostics
+
+# Model 5: ARMA(1,1) (final)
+log.diff.import.arma11 <- arima(log.diff.import.ts, order = c(1,0,1))
+log.diff.import.arma11.diagnostics <- sarima(log.diff.import.ts, 1, 0, 1)
+log.diff.import.arma11
+log.diff.import.arma11.diagnostics
+
+# Model 6: ARMA(1,2)
+log.diff.import.arma12 <- arima(log.diff.import.ts, order = c(1,0,2))
+log.diff.import.arma12.diagnostics <- sarima(log.diff.import.ts, 1, 0, 2)
+log.diff.import.arma12
+log.diff.import.arma12.diagnostics
+
+# Model 7: ARMA(2,1)
+log.diff.import.arma21 <- arima(log.diff.import.ts, order = c(2,0,1))
+log.diff.import.arma21.diagnostics <- sarima(log.diff.import.ts, 2, 0, 1)
+log.diff.import.arma21
+log.diff.import.arma21.diagnostics
+
+# Model 8: ARMA(2,2)
+log.diff.import.arma22 <- arima(log.diff.import.ts, order = c(2,0,2))
+log.diff.import.arma22.diagnostics <- sarima(log.diff.import.ts, 2, 0, 2)
+log.diff.import.arma22
+log.diff.import.arma22.diagnostics
+
+```
+
+## Imports Final Model: ARMA(1,1)
+
+# Forecast
+## GDP
+```{r}
+# Forecast
+# GDP
+gdp_forecast <- forecast(log.diff.gdp.arma22, h = 5)
+gdp_forecast
+autoplot(gdp_forecast) +
+  ggtitle("5-Year Forecast of GDP (ARIMA(2,0,2))") +
+  xlab("Year") +
+  ylab("Predicted diff(log(GDP))")
+```
+
+## Imports
+```{r}
+# Imports
+import_forecast <- forecast(log.diff.import.arma11, h = 5)
+import_forecast
+autoplot(import_forecast) +
+  ggtitle("5-Year Forecast of Imports (ARIMA(1,0,1))") +
+  xlab("Year") +
+  ylab("Predicted diff(log(Imports))")
+```
