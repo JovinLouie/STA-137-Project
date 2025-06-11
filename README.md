@@ -1,4 +1,4 @@
-# Predicting Breast Cancer Subtypes Using Gene Expression Profiles - STA 141C Final Project
+# Time Series Analysis of GDP and Imports in the Central African Republic - STA 137 Final Project
 
 By Jovin Louie, Jenny Xu, Keai Zhang, Peter Xie\
 Professor Xiucai Ding\
